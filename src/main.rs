@@ -1,4 +1,4 @@
-use mastodon_async::{helpers::{toml, cli}, Mastodon, Registration};
+use mastodon_async::{helpers::{toml, cli}, Mastodon, Registration, Visibility};
 use mastodon_async::Result;
 
 #[tokio::main]
@@ -12,6 +12,11 @@ async fn main() -> Result<()> {
 
     let you = mastodon.verify_credentials().await?;
 
+    // StatusBuilder::new();
+    let status = mastodon_async::StatusBuilder::new().status("Daaaaamn").visibility(Visibility::Public).build().unwrap();
+    mastodon.new_status(status).await?;
+
+
     println!("{:#?}", you);
     Ok(())
 }
@@ -20,6 +25,7 @@ async fn main() -> Result<()> {
 async fn register() -> Result<Mastodon> {
     let registration = Registration::new("https://masto.ai")
                                     .client_name("damnfinetoot")
+                                    .scopes(mastodon_async::scopes::Scopes::all())
                                     .build()
                                     .await?;
     let mastodon = cli::authenticate(registration).await?;

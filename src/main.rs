@@ -1,5 +1,6 @@
-use mastodon_async::{helpers::{toml, cli}, Mastodon, Registration, Visibility};
+use mastodon_async::{helpers::{toml, cli}, Mastodon, Registration, Visibility, StatusBuilder, prelude::Event};
 use mastodon_async::Result;
+use futures_util::TryStreamExt;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -12,9 +13,44 @@ async fn main() -> Result<()> {
 
     let you = mastodon.verify_credentials().await?;
 
-    // StatusBuilder::new();
-    let status = mastodon_async::StatusBuilder::new().status("Daaaaamn").visibility(Visibility::Public).build().unwrap();
-    mastodon.new_status(status).await?;
+    // let status = StatusBuilder::new()
+    //     .status("Daaaaamn")
+    //     .visibility(Visibility::Public)
+    //     .build()
+    //     .unwrap();
+
+    // let stream = mastodon.new_status(status).await?;
+
+
+    // let notifications = mastodon.notifications().await?;
+    // notifications.initial_items.iter()
+    //     .for_each(|status| { println!("{status:?}") });
+
+    // let dm_stream = mastodon.stream_direct().await?;
+    // dm_stream
+    //     .try_for_each(|event| async move {
+    //         println!("{:#?}", event);
+    //         Ok(())
+    //     }).await?;
+
+
+    let stream = mastodon.stream_user().await?;
+    stream
+        .try_for_each(|event| async move {
+            // println!("{:#?}", event);
+            match event {
+                Event::Update(ref _status) => { /* .. */ },
+                Event::Delete(ref _id) => { /* .. */ },
+                Event::FiltersChanged => { /* .. */ },
+                Event::Notification(ref notification) => {
+                    println!("Recieved: notification of type: {:?}", notification.notification_type);
+                    println!("  content: {:?}", notification.status.clone().unwrap().content);
+                },
+            }
+            Ok(())
+        }).await?;
+    //         notification_type: Mention,
+    // Status.content
 
 
     println!("{:#?}", you);

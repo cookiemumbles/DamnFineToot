@@ -120,6 +120,8 @@ dependencies = [
 name = "damn-fine-toot"
 version = "0.1.0"
 dependencies = [
+ "futures",
+ "futures-util",
  "mastodon-async",
  "tokio",
  "toml 0.7.2",

@@ -123,6 +123,7 @@ dependencies = [
  "futures",
  "futures-util",
  "mastodon-async",
+ "regex",
  "tokio",
  "toml 0.7.2",
 ]

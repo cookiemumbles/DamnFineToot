@@ -59,8 +59,8 @@ async fn get_masto_instance() -> Result<Mastodon> {
 }
 
 async fn register() -> Result<Mastodon> {
-    let registration = Registration::new("https://masto.ai")
-        .client_name("damnfinetoot")
+    let registration = Registration::new("https://techhub.social")
+        .client_name("DamnFineToot")
         .scopes(mastodon_async::scopes::Scopes::all())
         .build()
         .await?;
@@ -130,20 +130,20 @@ const STATEMENTS: &'static [&str] = &[
     "Noice!",
 ];
 
-fn format_dft_toot(awardee: &str, awarder: &str, toot_url: &str) -> String {
+fn format_dft_toot(receiver: &str, sender: &str, toot_url: &str) -> String {
     let handle_texts = [
         format!(
             "{} 's pick for toot of the day is by {} .",
-            awarder, awardee
+            sender, receiver
         ),
         format!(
             "{} 's toot was selected by {} as the toot of the day.",
-            awarder, awardee
+            receiver, sender
         ),
-        format!("{} named {} 's toot the best of the day.", awarder, awardee),
-        format!("{} picked you, {} .", awarder, awardee),
-        format!("{} selected {} 's toot.", awarder, awardee),
-        format!("{} was trophied by {} .", awarder, awardee),
+        format!("{} named {} 's toot the best of the day.", sender, receiver),
+        format!("{} picked you, {} .", sender, receiver),
+        format!("{} selected {} 's toot.", sender, receiver),
+        format!("{} was trophied by {} .", receiver, sender),
     ];
     let selected_statements: Vec<&str> = STATEMENTS
         .choose_multiple(&mut rand::thread_rng(), 3)

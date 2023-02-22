@@ -1,18 +1,24 @@
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+use std::fs;
+use std::path::Path;
+
 use futures_util::TryStreamExt;
-use mastodon_async::{
-    helpers::{cli, toml},
-    prelude::Event,
-    Mastodon, Registration,
-};
-use mastodon_async::{Result, StatusBuilder, Visibility};
+use mastodon_async::prelude::{Event, Notification};
+use mastodon_async::Result;
 use rand::seq::SliceRandom;
+
+use crate::masto_connect::{MastoWrapper, MastoWrapperReal};
+
+mod masto_connect;
 
 #[cfg(test)]
 mod main_test;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let mastodon = get_masto_instance().await?;
+    let masto_wrapper = &MastoWrapperReal {};
+    let mastodon = masto_wrapper.get_masto_instance().await?;
     let you = mastodon.verify_credentials().await?;
 
     println!("Listening to notifications...");
@@ -25,21 +31,7 @@ async fn main() -> Result<()> {
                 Event::Delete(ref _id) => { /* .. */ }
                 Event::FiltersChanged => { /* .. */ }
                 Event::Notification(ref notification) => {
-                    // println!("  content: {:?}", notification);
-                    println!(
-                        "Recieved: notification of type: {:?}",
-                        notification.notification_type
-                    );
-
-                    let content = notification.status.clone().unwrap().content;
-                    let url = extract_url(content.as_str()).unwrap();
-
-                    award_dft(format_dft_toot(
-                        url.user_handle.as_str(),
-                        format!("@{}", notification.account.acct).as_str(),
-                        url.full_url.as_str(),
-                    ))
-                    .await;
+                    let _ = handle_notification(notification, masto_wrapper).await;
                 }
             }
             Ok(())
@@ -50,26 +42,25 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn get_masto_instance() -> Result<Mastodon> {
-    let read_file_result = toml::from_file("mastodon-data.toml");
-    return match read_file_result {
-        Ok(data) => Ok(Mastodon::from(data)),
-        Err(_) => Ok(register().await?),
-    };
-}
+async fn handle_notification(
+    notification: &Notification,
+    masto_wrapper: &dyn MastoWrapper,
+) -> Result<String> {
+    println!(
+        "Recieved: notification of type: {:?}",
+        notification.notification_type
+    );
 
-async fn register() -> Result<Mastodon> {
-    let registration = Registration::new("https://techhub.social")
-        .client_name("DamnFineToot")
-        .scopes(mastodon_async::scopes::Scopes::all())
-        .build()
-        .await?;
-    let mastodon = cli::authenticate(registration).await?;
+    let content = notification.status.clone().unwrap().content;
+    let url = extract_url(content.as_str()).unwrap();
 
-    // Save app data for using on the next run.
-    toml::to_file(&mastodon.data, "mastodon-data.toml")?;
-
-    Ok(mastodon)
+    return masto_wrapper
+        .award_dft(format_dft_toot(
+            url.user_handle.as_str(),
+            format!("@{}", notification.account.acct).as_str(),
+            url.full_url.as_str(),
+        ))
+        .await;
 }
 
 fn extract_url(content: &str) -> Result<TootUrl> {
@@ -159,19 +150,23 @@ fn format_dft_toot(receiver: &str, sender: &str, toot_url: &str) -> String {
     );
 }
 
-async fn award_dft(text: String) {
-    let mastodon = get_masto_instance().await.unwrap();
-    println!("Sending toot: {}", text);
-    let status = StatusBuilder::new()
-        .status(text)
-        .visibility(Visibility::Public)
-        .build()
-        .unwrap();
-    let _ = mastodon.new_status(status).await;
-}
-
 #[derive(Debug)]
 pub struct TootUrl {
     full_url: String,
     user_handle: String,
+}
+
+pub fn write_data_to_json_file<T, P: AsRef<Path>>(data: &T, path: P)
+where
+    T: ?Sized + Serialize,
+{
+    let json_text =
+        serde_json::to_string_pretty(data).expect("Unable to covert data object to json");
+    fs::write(path, json_text).expect("Unable to write string to file");
+}
+
+// TODO: This is not safe and should be able to return an Err
+pub fn read_data_from_json<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> T {
+    let result = std::fs::read_to_string(path).unwrap();
+    return serde_json::from_str(&result).unwrap();
 }

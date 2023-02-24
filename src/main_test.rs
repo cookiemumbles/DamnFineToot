@@ -1,24 +1,17 @@
 use async_trait::async_trait;
-use mastodon_async::{Mastodon, Result};
+use mastodon_async::Result;
 
 use regex::Regex;
 
 use crate::{
-    extract_url, format_dft_toot, handle_notification, masto_connect::MastoWrapper,
-    read_data_from_json,
+    extract_url_from_toot, handle_notification, masto_connect::MastoWrapper,
+    read_data_from_json, texts::format_dft_toot,
 };
 
 struct MastoWrapperStub;
 
 #[async_trait]
 impl MastoWrapper for MastoWrapperStub {
-    async fn get_masto_instance(&self) -> Result<Mastodon> {
-        todo!();
-    }
-    async fn register(&self) -> Result<Mastodon> {
-        todo!();
-    }
-    // let mut award_dft_text = "";
     async fn award_dft(&self, text: String) -> Result<String> {
         Ok(format!("Toot sent: {}", text))
     }
@@ -54,7 +47,7 @@ fn should_get_url_from_string() {
                        </a>
                    </p>
         ";
-    let result = extract_url(content).unwrap();
+    let result = extract_url_from_toot(content).unwrap();
     assert_eq!(
         "https://ohai.social/@cookie_mumbles/109704675480017007",
         result.full_url

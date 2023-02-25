@@ -1,7 +1,12 @@
+use std::path::Path;
+
 use async_trait::async_trait;
 use mastodon_async::helpers::cli;
 use mastodon_async::{helpers::toml, Mastodon};
 use mastodon_async::{Registration, Result, StatusBuilder, Visibility};
+
+const DATA_FILE_PATH : &str = "/etc/damnfinetoot/mastodon-data.toml";
+const DATA_FILE_PATH_LOCAL : &str = "mastodon-data.toml";
 
 #[async_trait]
 pub trait MastoWrapper {
@@ -28,7 +33,11 @@ impl MastoWrapper for MastoWrapperReal {
 }
 
 pub async fn get_masto_instance() -> Result<Mastodon> {
-    let read_file_result = toml::from_file("mastodon-data.toml");
+    let data_file_path = match Path::new(DATA_FILE_PATH).try_exists() {
+        Ok(_) => DATA_FILE_PATH,
+        Err(_) => DATA_FILE_PATH_LOCAL,
+    };
+    let read_file_result = toml::from_file(data_file_path);
     return match read_file_result {
         Ok(data) => Ok(Mastodon::from(data)),
         Err(_) => Ok(register().await?),
@@ -44,7 +53,7 @@ async fn register() -> Result<Mastodon> {
     let mastodon = cli::authenticate(registration).await?;
 
     // Save app data for using on the next run.
-    toml::to_file(&mastodon.data, "mastodon-data.toml")?;
+    toml::to_file(&mastodon.data, DATA_FILE_PATH_LOCAL)?;
 
     Ok(mastodon)
 }

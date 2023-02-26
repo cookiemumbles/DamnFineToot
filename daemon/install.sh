@@ -57,10 +57,13 @@ main() {
   if [[ "$EXE" == "true" ]];then
     cargo build --profile release
     echo "copying to /user/sbin..."
+    sudo systemctl stop damnfinetoot.service
     sudo cp target/release/damnfinetoot /usr/sbin/
+    sudo systemctl restart damnfinetoot.service
   else
     echo "skipping installing damnfinetoot..."
   fi
+
   if [[ "$DAE" == "true" ]];then
     echo "copying service file to system location..."
     sudo cp ./daemon/damnfinetoot.service  /etc/systemd/system/

@@ -4,8 +4,8 @@ use mastodon_async::Result;
 use regex::Regex;
 
 use crate::{
-    extract_url_from_toot, handle_notification, masto_connect::MastoWrapper,
-    read_data_from_json, texts::format_dft_toot,
+    extract_url_from_toot, handle_notification, masto_connect::MastoWrapper, read_data_from_json,
+    texts::format_dft_toot,
 };
 
 struct MastoWrapperStub;

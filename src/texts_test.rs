@@ -2,7 +2,6 @@ use crate::texts::format_dft_toot;
 
 use regex::Regex;
 
-
 #[test]
 fn should_format_toot() {
     let format_result = format_dft_toot(

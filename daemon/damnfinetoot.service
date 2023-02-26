@@ -6,8 +6,8 @@ Type=simple
 User=damnfinetoot
 ExecStart=/usr/sbin/damnfinetoot
 Restart=on-failure
-StandardOutput=file:/var/log/damnfinetoot/stdout.log
-StandardError=file:/var/log/damnfinetoot/stderr.log
+StandardOutput=append:/var/log/damnfinetoot/stdout.log
+StandardError=append:/var/log/damnfinetoot/stderr.log
 
 [Install]
 WantedBy=multi-user.target

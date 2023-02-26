@@ -5,8 +5,8 @@ use mastodon_async::helpers::cli;
 use mastodon_async::{helpers::toml, Mastodon};
 use mastodon_async::{Registration, Result, StatusBuilder, Visibility};
 
-const DATA_FILE_PATH : &str = "/etc/damnfinetoot/mastodon-data.toml";
-const DATA_FILE_PATH_LOCAL : &str = "mastodon-data.toml";
+const DATA_FILE_PATH: &str = "/etc/damnfinetoot/mastodon-data.toml";
+const DATA_FILE_PATH_LOCAL: &str = "mastodon-data.toml";
 
 #[async_trait]
 pub trait MastoWrapper {

@@ -134,7 +134,6 @@ const STATEMENTS: &'static [&str] = &[
     "Better than Improv Night!",
 ];
 
-
 pub fn format_dft_toot(receiver: &str, sender: &str, toot_url: &str) -> String {
     let handle_texts = [
         format!(

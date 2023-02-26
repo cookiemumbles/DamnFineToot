@@ -1,3 +1,4 @@
+use futures::TryStream;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::fs;
@@ -15,9 +16,9 @@ mod masto_connect;
 #[cfg(test)]
 mod main_test;
 
+mod texts;
 #[cfg(test)]
 mod texts_test;
-mod texts;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -31,11 +32,35 @@ async fn main() -> Result<()> {
     let _user_creds = masto.api.verify_credentials().await?;
     eprintln!("[Ok]");
 
-    println!("Listening to notifications...");
-    masto
-        .api
-        .stream_user()
-        .await?
+    eprintln!("Requesting stream...");
+    let stream_result = masto.api.stream_user().await;
+    match stream_result {
+        Ok(stream) => {
+            eprintln!("Received stream. Listening to notifications...");
+            let stream_result = handle_user_stream(masto, stream).await;
+            match stream_result {
+                Ok(msg) => {
+                    eprint!("Stream ended with Ok({:?})", msg);
+                    return Ok(msg)
+                },
+                Err(err) => {
+                    eprint!("Stream ended with Error - {:?}", err);
+                    return Err(err)
+                }
+            }
+        }
+        Err(err) => {
+            eprintln!("Err: Streaming user broke - {:?}", err);
+            return Err(err)
+        },
+    }
+}
+
+async fn handle_user_stream(
+    masto: &dyn MastoWrapper,
+    stream: impl TryStream<Ok = Event, Error = mastodon_async::Error>,
+) -> Result<()> {
+    stream
         .try_for_each(|event| async move {
             match event {
                 Event::Update(ref _status) => { /* .. */ }
@@ -51,9 +76,7 @@ async fn main() -> Result<()> {
             }
             Ok(())
         })
-        .await?;
-
-    Ok(())
+        .await
 }
 
 async fn handle_notification(
@@ -95,7 +118,6 @@ fn extract_url_from_toot(content: &str) -> Result<TootUrl> {
         ),
     });
 }
-
 
 #[derive(Debug)]
 pub struct TootUrl {

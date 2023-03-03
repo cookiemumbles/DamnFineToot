@@ -5,7 +5,7 @@ Description=The deamon running the JustMyToots bot
 Type=simple
 User=damnfinetoot
 ExecStart=/usr/sbin/damnfinetoot
-Restart=on-failure
+Restart=always
 StandardOutput=append:/var/log/damnfinetoot/stdout.log
 StandardError=append:/var/log/damnfinetoot/stderr.log
 

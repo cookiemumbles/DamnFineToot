@@ -33,9 +33,9 @@ impl MastoWrapper for MastoWrapperReal {
 }
 
 pub async fn get_masto_instance() -> Result<Mastodon> {
-    let data_file_path = match Path::new(DATA_FILE_PATH).try_exists() {
-        Ok(_) => DATA_FILE_PATH,
-        Err(_) => DATA_FILE_PATH_LOCAL,
+    let data_file_path = match Path::new(DATA_FILE_PATH).try_exists().unwrap() {
+        true => DATA_FILE_PATH,
+        false => DATA_FILE_PATH_LOCAL,
     };
     let read_file_result = toml::from_file(data_file_path);
     return match read_file_result {
@@ -46,14 +46,15 @@ pub async fn get_masto_instance() -> Result<Mastodon> {
 
 async fn register() -> Result<Mastodon> {
     let registration = Registration::new("https://techhub.social")
-        .client_name("DamnFineToot")
+        .client_name("DamnFineTootBot")
         .scopes(mastodon_async::scopes::Scopes::all())
         .build()
         .await?;
     let mastodon = cli::authenticate(registration).await?;
-
     // Save app data for using on the next run.
+    eprintln!("writing to {}", DATA_FILE_PATH_LOCAL);
     toml::to_file(&mastodon.data, DATA_FILE_PATH_LOCAL)?;
+    eprintln!("success");
 
     Ok(mastodon)
 }

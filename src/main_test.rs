@@ -19,13 +19,35 @@ impl MastoWrapper for MastoWrapperStub {
 
 #[tokio::test]
 async fn should_handle_notification() {
-    let notification = read_data_from_json("src/test_res/notification.json");
+    let notification = read_data_from_json("src/test_res/noti_perfect.json");
 
     let masto_wrapper = &MastoWrapperStub;
 
     let result = handle_notification(&notification, masto_wrapper).await;
     assert!(result.is_ok());
     assert_string_matches("^Toot sent:.*", result.unwrap().as_str());
+}
+
+#[tokio::test]
+async fn should_ignore_favorites() {
+    let notification = read_data_from_json("src/test_res/noti_favorite.json");
+
+    let masto_wrapper = &MastoWrapperStub;
+
+    let result = handle_notification(&notification, masto_wrapper).await;
+    assert!(result.is_ok());
+    assert_eq!("", result.unwrap());
+}
+
+#[tokio::test]
+async fn should_ignore_replies() {
+    let notification = read_data_from_json("src/test_res/noti_reply.json");
+
+    let masto_wrapper = &MastoWrapperStub;
+
+    let result = handle_notification(&notification, masto_wrapper).await;
+    assert!(result.is_ok());
+    assert_eq!("", result.unwrap());
 }
 
 #[test]

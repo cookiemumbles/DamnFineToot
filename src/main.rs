@@ -1,4 +1,5 @@
 use futures::TryStream;
+use mastodon_async::entities::notification::NotificationType;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::fs;
@@ -41,18 +42,18 @@ async fn main() -> Result<()> {
             match stream_result {
                 Ok(msg) => {
                     eprint!("Stream ended with Ok({:?})", msg);
-                    return Ok(msg)
-                },
+                    return Ok(msg);
+                }
                 Err(err) => {
                     eprint!("Stream ended with Error - {:?}", err);
-                    return Err(err)
+                    return Err(err);
                 }
             }
         }
         Err(err) => {
             eprintln!("Err: Streaming user broke - {:?}", err);
-            return Err(err)
-        },
+            return Err(err);
+        }
     }
 }
 
@@ -87,17 +88,29 @@ async fn handle_notification(
         "Recieved: notification of type: {:?}",
         notification.notification_type
     );
+    // For debugging
+    // write_data_to_json_file(notification, format!("noti_{}.json", notification.id));
 
-    let content = notification.status.clone().unwrap().content;
-    let url = extract_url_from_toot(content.as_str()).unwrap();
+    if notification.notification_type == NotificationType::Mention
+        && notification
+            .status
+            .clone()
+            .unwrap()
+            .in_reply_to_id
+            .is_none()
+    {
+        let content = notification.status.clone().unwrap().content;
+        let url = extract_url_from_toot(content.as_str()).unwrap();
 
-    return masto
-        .award_dft(format_dft_toot(
-            url.user_handle.as_str(),
-            format!("@{}", notification.account.acct).as_str(),
-            url.full_url.as_str(),
-        ))
-        .await;
+        return masto
+            .award_dft(format_dft_toot(
+                url.user_handle.as_str(),
+                format!("@{}", notification.account.acct).as_str(),
+                url.full_url.as_str(),
+            ))
+            .await;
+    }
+    Ok("".to_string())
 }
 
 fn extract_url_from_toot(content: &str) -> Result<TootUrl> {

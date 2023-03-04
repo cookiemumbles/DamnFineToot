@@ -9,17 +9,15 @@ use futures_util::TryStreamExt;
 use mastodon_async::prelude::{Event, Notification};
 use mastodon_async::Result;
 
-use crate::masto_connect::{get_masto_instance, MastoWrapper, MastoWrapperReal};
-use crate::texts::format_dft_toot;
+use crate::masto::api_wrapper::{get_masto_instance, MastoWrapper, MastoWrapperReal};
+use crate::string_utils::dft_msg::format_dft_toot;
+use string_utils::parsing::extract_url_from_toot;
 
-mod masto_connect;
+mod masto;
+mod string_utils;
 
 #[cfg(test)]
 mod main_test;
-
-mod texts;
-#[cfg(test)]
-mod texts_test;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -103,7 +101,7 @@ async fn handle_notification(
         let url = extract_url_from_toot(content.as_str()).unwrap();
 
         return masto
-            .award_dft(format_dft_toot(
+            .send_public_toot(format_dft_toot(
                 url.user_handle.as_str(),
                 format!("@{}", notification.account.acct).as_str(),
                 url.full_url.as_str(),
@@ -111,31 +109,6 @@ async fn handle_notification(
             .await;
     }
     Ok("".to_string())
-}
-
-fn extract_url_from_toot(content: &str) -> Result<TootUrl> {
-    let re = regex::Regex::new(r#"(https?://([^/]+)/(@[^/]+)/[^<\s][^\s"]+)"#).unwrap();
-    let captures = re
-        .captures_iter(content)
-        .filter(|it| it.get(0).unwrap().as_str() != "https://masto.ai/@damnfinetoot")
-        .last()
-        .unwrap();
-    println!("  content: {:?}", captures);
-
-    return Ok(TootUrl {
-        full_url: captures.get(0).unwrap().as_str().to_string(),
-        user_handle: format!(
-            "{}@{}",
-            captures.get(3).unwrap().as_str(),
-            captures.get(2).unwrap().as_str()
-        ),
-    });
-}
-
-#[derive(Debug)]
-pub struct TootUrl {
-    full_url: String,
-    user_handle: String,
 }
 
 pub fn write_data_to_json_file<T, P: AsRef<Path>>(data: &T, path: P)

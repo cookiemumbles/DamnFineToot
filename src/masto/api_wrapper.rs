@@ -10,7 +10,7 @@ const DATA_FILE_PATH_LOCAL: &str = "mastodon-data.toml";
 
 #[async_trait]
 pub trait MastoWrapper {
-    async fn award_dft(&self, text: String) -> Result<String>;
+    async fn send_public_toot(&self, text: String) -> Result<String>;
 }
 
 pub struct MastoWrapperReal {
@@ -19,15 +19,14 @@ pub struct MastoWrapperReal {
 
 #[async_trait]
 impl MastoWrapper for MastoWrapperReal {
-    async fn award_dft(&self, text: String) -> Result<String> {
-        let mastodon = get_masto_instance().await.unwrap();
-        println!("Sending toot: {}", text);
+    async fn send_public_toot(&self, text: String) -> Result<String> {
+        eprintln!("Sending toot: {}", text);
         let status = StatusBuilder::new()
             .status(&text)
             .visibility(Visibility::Public)
             .build()
             .unwrap();
-        mastodon.new_status(status).await?;
+        self.api.new_status(status).await?;
         Ok(format!("Toot sent: {}", text))
     }
 }

@@ -7,11 +7,12 @@ use std::path::Path;
 
 use futures_util::TryStreamExt;
 use mastodon_async::prelude::{Event, Notification};
-use mastodon_async::Result;
+use mastodon_async::{Error, Result};
 
 use crate::masto::api_wrapper::{get_masto_instance, MastoWrapper, MastoWrapperReal};
 use crate::string_utils::dft_msg::format_dft_toot;
-use string_utils::parsing::extract_url_from_toot;
+use crate::string_utils::parsing::{extract_command_from_toot, CustomCommands};
+use string_utils::parsing::{extract_url_from_toot, TootUrl};
 
 mod masto;
 mod string_utils;
@@ -21,6 +22,7 @@ mod main_test;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    eprintln!("-- starting at {} --", chrono::Local::now());
     eprint!("Connecting to account...");
     let masto = &MastoWrapperReal {
         api: get_masto_instance().await?,
@@ -57,7 +59,7 @@ async fn main() -> Result<()> {
 
 async fn handle_user_stream(
     masto: &dyn MastoWrapper,
-    stream: impl TryStream<Ok = Event, Error = mastodon_async::Error>,
+    stream: impl TryStream<Ok = Event, Error = Error>,
 ) -> Result<()> {
     stream
         .try_for_each(|event| async move {
@@ -83,9 +85,11 @@ async fn handle_notification(
     masto: &dyn MastoWrapper,
 ) -> Result<String> {
     eprintln!(
-        "Recieved: notification of type: {:?}",
-        notification.notification_type
+        "Recieved: notification of type: {:?} at - {}",
+        notification.notification_type,
+        chrono::Local::now()
     );
+
     // For debugging
     // write_data_to_json_file(notification, format!("noti_{}.json", notification.id));
 
@@ -98,17 +102,41 @@ async fn handle_notification(
             .is_none()
     {
         let content = notification.status.clone().unwrap().content;
-        let url = extract_url_from_toot(content.as_str()).unwrap();
-
-        return masto
-            .send_public_toot(format_dft_toot(
-                url.user_handle.as_str(),
-                format!("@{}", notification.account.acct).as_str(),
-                url.full_url.as_str(),
-            ))
-            .await;
+        return match extract_url_from_toot(content.as_str()) {
+            Ok(url) => send_dft(notification, masto, url).await,
+            Err(_) => match extract_command_from_toot(content.as_str()) {
+                Ok(CustomCommands::STATUS) => send_status_reply(notification, masto).await,
+                Err(_) => Err(Error::Other(String::from(""))),
+            },
+        };
     }
     Ok("".to_string())
+}
+
+async fn send_dft(
+    notification: &Notification,
+    masto: &dyn MastoWrapper,
+    url: TootUrl,
+) -> Result<String> {
+    let toot_text = format_dft_toot(
+        url.user_handle.as_str(),
+        format!("@{}", notification.account.acct).as_str(),
+        url.full_url.as_str(),
+    );
+    masto.send_public_toot(toot_text).await
+}
+
+async fn send_status_reply(
+    notification: &Notification,
+    masto: &dyn MastoWrapper,
+) -> Result<String> {
+    let id = notification.status.clone().unwrap();
+    masto
+        .send_reply(
+            id.id.to_string(),
+            format!("@{}\nStill here", notification.account.acct),
+        )
+        .await
 }
 
 pub fn write_data_to_json_file<T, P: AsRef<Path>>(data: &T, path: P)
